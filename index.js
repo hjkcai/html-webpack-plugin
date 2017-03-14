@@ -68,6 +68,25 @@ HtmlWebpackPlugin.prototype.apply = function (compiler) {
     var allChunks = compilation.getStats().toJson().chunks;
     // Filter chunks (options.chunks and options.excludeCHunks)
     var chunks = self.filterChunks(allChunks, self.options.chunks, self.options.excludeChunks);
+
+    // Add dependent chunks
+    if (self.options.includeDependent) {
+      var deps = [];
+      var chunkIds = allChunks.map(function (chunk) { return chunk.id })
+      chunks.forEach(function (chunk) {
+        chunk.parents.forEach(function (parent) {
+          var parentChunkId = chunkIds.indexOf(parent);
+          var parentChunk = allChunks[parentChunkId]
+
+          // Make sure no duplicate chunks added
+          if (parentChunk && !chunks.includes(parentChunk) && !deps.includes(parentChunk)) {
+            deps.push(parentChunk);
+          }
+        });
+      });
+      chunks = chunks.concat(deps);
+    }
+
     // Sort chunks
     chunks = self.sortChunks(chunks, self.options.chunksSortMode);
     // Let plugins alter the chunks and the chunk sorting
